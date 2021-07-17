@@ -1,0 +1,24 @@
+{
+  "name": "employeeTrackerSQL",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SamuelMontague/employeeTrackerSQL.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/SamuelMontague/employeeTrackerSQL/issues"
+  },
+  "homepage": "https://github.com/SamuelMontague/employeeTrackerSQL#readme",
+  "dependencies": {
+    "inquirer": "^8.1.2",
+    "mysql": "^2.18.1"
+  }
+}
