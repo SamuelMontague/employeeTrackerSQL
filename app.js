@@ -1,12 +1,12 @@
 
 const inquirer = require("inquirer");
-const mysql = require("mysql");
+const mysql2 = require("mysql2");
 const cTable = require("console.table");
 
 
 
 const {config} = require("./creds");
-const connection = mysql.createConnection({config});
+const connection = mysql2.createConnection({config});
 
 connection.connect(function(err){
     if(err) throw err 
@@ -44,16 +44,19 @@ function startPrompt() {
                 viewAllDepartments();
             break;
 
+            case "Add Employee?":
+                addEmployee();
+
             case "Update Employee":
                 updateEmployee();
             break;
 
             case "Add Role?":
-                addRole();
+                addEmployeeRole();
             break;
 
             case "Add Department?":
-                addDepartment();
+                addEmployeeDepartment();
             break;
         }
     })
@@ -157,6 +160,113 @@ function addEmployee() {
             console.table(val)
             startPrompt()
         }
+        )
+    })
+}
+
+// Update Employee //
+// Will need a i loop//
+// will need a join statement //
+// will need prompts // 
+
+function updateEmployee() {
+    connection.query("SELECT employee.last_name, role.title FROM employee JOIN role ON employee.role_id = role.id;", function(err, res){
+
+        if (err) throw err
+        console.log(res)
+        inquierer.prompt([
+            {
+                type: "rawlist",
+                name: "lastName",
+                choices: function() {
+                    var lastName = [];
+                    for (var i = 0; i < res.length; i++) {
+                        lastName.push(res[i].last_name);
+                    }
+                    return lastName;
+                },
+                message: "What is the Employee's last name?"
+            },
+            {
+                type:"rawlist",
+                name: "role", 
+                message: "What is the employees new title?",
+                choices: selectRole()
+            },
+        ]).then(function(val){
+            let roleId = selectRole().indexOf(val.role) + 1
+            connection.query("UPDATE employee SET WHERE ?", 
+            {
+                last_name: val.lastName
+            },
+            {
+                role_id: roleId
+            },
+            function(err) {
+                if (err) throw err
+                console.table(val)
+                startPrompt()
+            })
+        });
+    });
+}
+
+
+// Add the employees role //
+function addEmployeeRole() {
+    connection.query("SELECT role.title AS Title, role.salary AS Salary FROM role", function(err, res){
+        inquirer.prompt([
+            {
+                type: "input",
+                name: "Title",
+                message: "What is the Title of the role?"
+            },
+            {
+                type: "input",
+                name: "Salary",
+                message: "How much is the Salary?"
+            }
+
+        ]).then(function(res) {
+            connection.query(
+                "INSERT INTO role SET ?", 
+                {
+                    title: res.Title,
+                    salary: res.Salary,
+                },
+                function(err) {
+                    if (err) throw err
+                    console.table(val)
+                    startPrompt()
+                }
+            )
+        })
+    })
+}
+
+// Add a department Function //
+// probably needs prompt? //
+
+function addEmployeeDepartment() {
+
+
+    inquirer.prompt([
+        {
+            name: "name",
+            type:"input",
+            message: "What Department would you like to add?"
+        }
+    ]).then(function(res) {
+        let query = connection.query(
+            "INSERT INTO department SET ? ",
+            {
+                name: res.name
+            },
+            function(err) {
+                if (err) throw err
+                console.table(val)
+                startPrompt()
+            }
         )
     })
 }
