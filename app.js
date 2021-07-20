@@ -2,6 +2,7 @@
 const inquirer = require("inquirer");
 const mysql2 = require("mysql2");
 const cTable = require("console.table");
+const Database = require("./async-db");
 
 const connection = mysql2.createConnection({
         host: 'localhost',
@@ -85,7 +86,7 @@ async function getRoles() {
 
 
 // Select Role for Managers for Add Employees //
-async function getManagers() {
+async function getManagerNames() {
     let query = "SELECT * FROM employee WHERE manager_id IS NULL";
     
     const rows = await connection.query(query);
@@ -98,19 +99,19 @@ async function getManagers() {
 
 // Add Employee //
 // inquirer need for prompts// 
-async function addEmployee() {
+async function getAddEmployeeInfo() {
     const managers = await getManagerNames();
     const roles = await getRoles();
     return inquirer.prompt([
         {
             type: "input",
             message: "Enter first name",
-            name: "firstname"
+            name: "first_name"
         },
         {
             type: "input",
             message: "Enter last name",
-            name: "last name"
+            name: "last_name"
         },
         {
             type: "list",
@@ -166,6 +167,107 @@ async function getDepartmentNames(){
     return departments;
 }
 
+async function getDepartmentId(departmentName) {
+    let query = "SELECT * FROM department WHERE department.name=?";
+    let args = [departmentName];
+    const rows = await connection.query(query, args);
+    return rows[0].id;
+}
+
+async function getRoleId(roleName) {
+    let query = "SELECT * FROM role WHERE role.title=?";
+    let args = [roleName]; 
+    const rows = await connection.query(query, args);
+    return rows[0].id;
+}
+
+async function getEmployeeId(fullName) {
+    let employee = getFirstAndLastName(fullName);
+    let query = "SELECT id FROM employee WHERE employee.first_name=? AND employee.last_name=?";
+    let args = [employee[0], employee[1]]; 
+    const rows = await connection.query(query, args);
+    return rows[0].id;
+}
+
+async function getEmployeeNames() {
+    
+    let query = "SELECT * FROM employee";
+    const rows = connection.query(query);
+    let employeeNames = []; 
+    for(const employee of rows) {
+        employeeNames.push(employee.first_name + " " + employee.last_name);
+    }
+    return employeeNames;
+}
+
+async function viewAllEmployeesByDepartment(){
+    console.log("");
+    let query = "SELECT first_name, last_name, department.name FROM ((employee INNER JOIN role ON role_id = role.id) INNER JOIN department ON department_id = department.id);"
+    const rows = await connection.query(query);
+    console.table(rows);
+}
+
+function getFirstAndLastName (fullName) {
+    let employee = fullName.split(" ");
+    if(employee.length == 2) {
+        return employee;
+    }
+    const last_name = employee[employee.length-1];
+    let first_name = "";
+    for (let i=0; i<employee.length-1; i++){
+        first_name = first_name + employee[i] + "";
+    }
+    return [first_name.trim(), last_name];
+}
+
+async function updateEmployeeRole(employeeinfo) {
+    const roleId = await getRoleId(employeeInfo.role);
+    const employee = getFirstAndLastName(employeeInfo.employeeName);
+
+    let query = 'UPDATE employee SET role_id=? WHERE employee.first_name=? AND employee.last_name=?';
+    let args = [roleId, employee[0], employee[1]];
+    const rows = await connection.query(query, args);
+    console.log(`Updated employee ${employee[0]} ${employee[1]} with role ${employeeInfo.role}`);
+}
+
+async function addEmployee(employeeInfo){
+    let roleId = await getRoleId(employeeInfo.role);
+    let managerId= await getEmployeeId(employeeInfo.manager);
+
+    let query = "INSERT into employee (first_name, last_name, role_id, manager_id) VALUES (?,?,?,?)";
+    let args = [employeeInfo.first_name, employeeInfo.last_name, roleId, managerId];
+    const rows = await connection.query(query, args);
+    console.log(`Employee removed: ${employeeName[0]} ${employeeName[1]}`);
+}
+
+async function removeEmployee(employeeInfo) {
+    const employeeName = getFirstAndLastName(employeeInfo.employeeName);
+
+    let query = "DELETE from employee WHERE first_name=? AND last_name=?";
+    let args = [employeeName[0], employeeName[1]];
+    const rows = await connection.query(query, args);
+    console.log(`Employee removed: ${employeeName[0]} ${employeeName[1]}`);
+}
+
+async function addDepartment(departmentInfo) {
+    const departmentName = departmentInfo.departmentName;
+    let query = 'INSERT into department (name) VALUES (?)';
+    let args = [departmentName];
+    const rows = await connection.query(query, args);
+    console.log(`Added department named ${departmentName}`);
+}
+
+async function addRole(roleInfo) {
+    const departmentId = await getDepartmentId(roleInfo.departmentName);
+    const salary = roleInfo.salary;
+    const title = roleInfo.roleName;
+    let query = 'INSERT into role (title, salary, department_id) VALUES (?,?,?)';
+    let args = [title, salary, departmentId];
+    const rows = await connection.query(query, args);
+    console.log(`Added role ${title}`);
+}
+
+// Add the employees role //
 async function getRoleInfo() {
     const departments = await getDepartmentNames();
     return inquirer
@@ -218,40 +320,9 @@ async function getUpdateEmployeeRoleInfo(){
         }])
 }
 
-
-// Add the employees role //
-function addEmployeeRole() {
-    connection.query("SELECT role.title AS Title, role.salary AS Salary FROM role", function(err, res){
-        inquirer.prompt([
-            {
-                type: "input",
-                name: "Title",
-                message: "What is the Title of the role?"
-            },
-            {
-                type: "input",
-                name: "Salary",
-                message: "How much is the Salary?"
-            }
-
-        ]).then(function(res) {
-            connection.query(
-                "INSERT INTO role SET ?", 
-                {
-                    title: res.Title,
-                    salary: res.Salary,
-                },
-                function(err) {
-                    if (err) throw err
-                    console.table(val)
-                    startPrompt()
-                }
-            )
-        })
-    })
-}
-
-
+// main function //
+// need prompts// 
+// probably a switch statement //
 async function main() {
     let exitLoop = false;
     while(!exitLoop) {
@@ -269,6 +340,13 @@ async function main() {
                 console.log("add an employee");
                 console.log(newEmployee);
                 await addEmployee(newEmployee);
+                break;
+            }
+
+            case 'Add Role' : {
+                const newRole = await getRoleInfo();
+                console.log("add a role");
+                await addRole(newRole);
                 break;
             }
 
@@ -319,3 +397,5 @@ process.on("exit", async function(code) {
     await connection.close();
     return console.log(`Closing with code ${code}`);
 })
+
+main();
