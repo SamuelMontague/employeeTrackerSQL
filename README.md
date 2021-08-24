@@ -19,6 +19,8 @@ This application is used to manage a company's staff, and information about them
 * [Tests](#tests)
 
 * [Questions](#questions)
+
+* [Video](#video)
     
 # Installation
     The following necessary dependcies must be installed to run the application properly: inquierer, mysql and console-table.
@@ -44,3 +46,6 @@ To run tests, run the following command: node index.js
 # Questions
 
 If you have any questions about the repo, open an issue or contact me directly at SamuelpMontague@gmail.com. You can find more of my work at (https://github.com/SamuelMontague/).
+
+# Video
+https://drive.google.com/file/d/1H8m5XI7g0-I7YChf9tot9oKUVM2ky2EV/view
